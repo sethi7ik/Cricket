@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "t20x"
+version = "0.1.0"
+description = "T20 cricket analytics: opponent-quality-adjusted ratings, expected runs, and cricket WAR"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Anurag" },
+]
+keywords = ["cricket", "analytics", "t20", "ipl", "ratings", "elo", "bayesian"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "duckdb>=1.0",
+    "pydantic>=2.0",
+    "typer>=0.12",
+    "rich>=13.0",
+    "httpx>=0.27",
+    "tqdm>=4.66",
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "scikit-learn>=1.4",
+    "pandas>=2.2",
+]
+
+[project.optional-dependencies]
+bayesian = ["pymc>=5.10", "numpyro>=0.14"]
+api = ["fastapi>=0.110", "uvicorn>=0.29"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "hypothesis",
+]
+
+[project.scripts]
+t20x = "t20x.cli.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/t20x"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
