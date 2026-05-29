@@ -62,20 +62,31 @@ def main() -> None:
     print("MATCH PREDICTION — winner of post-2024 matches from pre-cutoff WPA")
     print("=" * 70)
 
-    variants = [
-        ("career_total", None),
-        ("2_year_window", 2),
-        ("1_year_window", 1),
+    # Window variants: career total + hard cutoffs
+    window_variants = [
+        ("career_total", None, None),
+        ("2_year_window", 2, None),
+        ("1_year_window", 1, None),
     ]
-    print(f"\n{'Variant':16s}  {'Accuracy':>10s}  {'LogLoss':>9s}  {'Brier':>8s}  {'sigmoid_coef':>12s}")
+    # Exponential-decay variants: continuous recency.
+    # lambda = ln(2) / half_life_years.
+    import math
+    decay_variants = [
+        (f"decay_hl_{hl}y", None, math.log(2) / hl)
+        for hl in (0.5, 1.0, 1.5, 2.0, 3.0, 5.0)
+    ]
+    variants = window_variants + decay_variants
+    print(f"\n{'Variant':18s}  {'Accuracy':>10s}  {'LogLoss':>9s}  {'Brier':>8s}  {'sigmoid_coef':>12s}")
     print("-" * 70)
     mp_career: MatchPredictionResult | None = None
-    for label, lb in variants:
-        mp = evaluate_match_prediction(conn, cutoff=CUTOFF, fit_split=0.5, lookback_years=lb)
+    for label, lb, dl in variants:
+        mp = evaluate_match_prediction(
+            conn, cutoff=CUTOFF, fit_split=0.5, lookback_years=lb, decay_lambda=dl,
+        )
         if label == "career_total":
             mp_career = mp
         m = mp.metrics["WPA_model"]
-        print(f"  {label:14s}  {m['accuracy']*100:>9.1f}%  {m['log_loss']:>9.4f}  {m['brier']:>8.4f}  {m['coef']:>12.4f}")
+        print(f"  {label:16s}  {m['accuracy']*100:>9.1f}%  {m['log_loss']:>9.4f}  {m['brier']:>8.4f}  {m['coef']:>12.4f}")
     assert mp_career is not None
     print(f"\nBaselines (from career variant, same test split):")
     print(f"  {'coin_flip':14s}  {'50.0%':>10s}  "

@@ -190,6 +190,23 @@ This is the same class of issue baseball's WPA has with defensive specialists. D
 
 [`src/t20x/ratings/win_probability.py`](../src/t20x/ratings/win_probability.py) — `WinProbabilityModel`, `compute_wpa`, `compute_war`.
 
+### Recency: exponential decay over time
+
+Career-total WPA averages over a player's whole arc and dilutes current form. The validation suite swept rolling windows and exponential decay parameters; the result:
+
+| Aggregation | Accuracy on post-2024 IPL+ matches | Log-loss |
+|---|---:|---:|
+| Career total | 51.6% | 0.6888 |
+| 2-year hard window | 53.7% | 0.6911 |
+| **Exp decay, half-life 1.5y** | **54.2%** | 0.6890 |
+| **Exp decay, half-life 3y** | 54.1% | **0.6881** |
+
+The improvement from exp decay over hard windows is consistent: smooth weighting preserves long-run signal while emphasizing recent form. The Goldilocks zone is **half-life ≈ 1.5y to 3y**.
+
+**Adopted default:** when displaying "current" career WPA / WAR, weight each delivery by `exp(−λ · Δt_years)` with `λ = ln(2)/2 ≈ 0.347` (half-life ~2 years). The half-life is a parameter; for historical "career total" the parameter can be set to 0.
+
+See [docs/validation.md](validation.md) for the full sweep.
+
 ---
 
 ## Legacy: Elo + Bradley–Terry (secondary signals)

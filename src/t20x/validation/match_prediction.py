@@ -40,6 +40,7 @@ def evaluate_match_prediction(
     fit_split: float = 0.5,
     random_state: int = 42,
     lookback_years: float | None = None,
+    decay_lambda: float | None = None,
 ) -> MatchPredictionResult:
     """Career WPA prior to `cutoff` predicts match outcomes after `cutoff`.
 
@@ -68,10 +69,8 @@ def evaluate_match_prediction(
     df["bowling_team"] = _bowling_team(df)
 
     cutoff_ts = pd.Timestamp(cutoff)
-    pre = df[df["date"] < cutoff_ts]
+    pre = df[df["date"] < cutoff_ts].copy()
     if lookback_years is not None:
-        window_start = cutoff_ts - pd.DateOffset(years=int(round(lookback_years * 100)) // 100)
-        # pd.DateOffset doesn't accept float years; round to whole years for simplicity.
         window_start = cutoff_ts - pd.DateOffset(years=int(lookback_years))
         pre = pre[pre["date"] >= window_start]
     post = df[df["date"] >= cutoff_ts]
@@ -79,10 +78,18 @@ def evaluate_match_prediction(
     if pre.empty or post.empty:
         raise RuntimeError(f"Empty pre or post split at cutoff {cutoff}.")
 
-    # Career batting WPA (positive delta = positive for batter)
-    bat_wpa = pre.groupby("batter_id")["delta_wp"].sum().rename("bat_wpa")
-    # Career bowling WPA (negative delta = positive for bowler)
-    bowl_wpa = pre.groupby("bowler_id")["delta_wp"].apply(lambda s: -s.sum()).rename("bowl_wpa")
+    # Apply exponential decay weight if requested. Weight = exp(-lambda * Δt_years).
+    # lambda has units of 1/year. lambda=0.693 -> half-life 1 year. lambda=0.347 -> 2 years.
+    if decay_lambda is not None:
+        years_back = (cutoff_ts - pre["date"]).dt.days / 365.25
+        weight = np.exp(-decay_lambda * years_back)
+        pre["delta_wp_weighted"] = pre["delta_wp"] * weight
+        value_col = "delta_wp_weighted"
+    else:
+        value_col = "delta_wp"
+
+    bat_wpa = pre.groupby("batter_id")[value_col].sum().rename("bat_wpa")
+    bowl_wpa = pre.groupby("bowler_id")[value_col].apply(lambda s: -s.sum()).rename("bowl_wpa")
 
     # Per-player career value = bat WPA + bowl WPA (default 0 if missing one role)
     player_value = bat_wpa.to_frame().join(bowl_wpa, how="outer").fillna(0.0)
