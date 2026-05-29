@@ -167,14 +167,14 @@ Source: ESPNCricinfo player profiles + inference heuristics for missing data.
 
 ## Implementation Phases
 
-### Phase 1: Foundation + Data Ingestion ⬅️ CURRENT
+### Phase 1: Foundation + Data Ingestion ✅ DONE
 - [x] Package scaffolding (pyproject.toml, directory structure)
-- [ ] Config, constants, enums
-- [ ] DuckDB schema + engine
-- [ ] Cricsheet JSON parser with auto-download
-- [ ] Player registry (Cricsheet UUIDs)
-- [ ] CLI: `t20x ingest --source cricsheet`
-- [ ] Tests with real Cricsheet fixture data
+- [x] Config, constants, enums
+- [x] DuckDB schema + engine
+- [x] Cricsheet JSON parser with auto-download
+- [x] Player registry (Cricsheet UUIDs)
+- [x] CLI: `t20x ingest --league ipl`
+- [x] Tests (17 passing) with real Cricsheet fixture data
 
 ### Phase 2: Player Metadata Enrichment
 - [ ] ESPNCricinfo scraper for bowling style, batting hand
@@ -182,12 +182,19 @@ Source: ESPNCricinfo player profiles + inference heuristics for missing data.
 - [ ] CLI: `t20x enrich --source espn`
 - [ ] Target: >90% bowler classification coverage
 
-### Phase 3: Core Rating Engine
+### Phase 3: Core Rating Engine + Validation
 - [ ] Per-delivery Elo engine (`ratings/elo.py`)
 - [ ] Bradley-Terry pairwise MLE (`ratings/bradley_terry.py`)
 - [ ] Iterative convergence orchestrator (`ratings/convergence.py`)
 - [ ] CLI: `t20x ratings compute`, `t20x ratings show <player>`
-- [ ] Validation: Spearman correlation > 0.6 with ICC T20I rankings
+- [ ] Validation framework (`validation/` module):
+  - [ ] `holdout.py` — train on 2008-2023, predict 2024-2025 match outcomes (accuracy, log-loss, Brier score vs ICC/naive baselines)
+  - [ ] `calibration.py` — calibration plots: predicted vs actual outcome frequency by decile
+  - [ ] `rank_compare.py` — Spearman correlation with ICC T20I rankings (target > 0.6)
+  - [ ] `convergence.py` — plot rating changes per epoch, verify stabilization and zero-sum
+  - [ ] `sensitivity.py` — parameter sweep: K-factor, Elo/BT blend weights, stability of top-10
+  - [ ] Cross-league validation: train on IPL, predict BBL (and vice versa)
+  - [ ] Face validity: sanity-check top-10 lists against expert consensus
 
 ### Phase 4: Situation-Aware Metrics + xR
 - [ ] Expected Runs model (`ratings/expected_runs.py`)
@@ -203,8 +210,13 @@ Source: ESPNCricinfo player profiles + inference heuristics for missing data.
 - [ ] Player similarity via embeddings
 - [ ] CLI: `t20x compare`, `t20x rank`
 
-### Phase 6: Bayesian Enhancement + API
+### Phase 6: Bayesian + GP Enhancement + API
 - [ ] PyMC/NumPyro hierarchical model (Elo as priors)
+- [ ] Gaussian Process player ratings (`ratings/gaussian_process.py`)
+  - GP with temporal kernel for time-varying ability
+  - GP classification for delivery outcomes
+  - A/B comparison: linear (Bradley-Terry) vs GP on held-out season
+  - Blog post: "Linear Models vs Gaussian Processes: Which Predicts Cricket Better?"
 - [ ] Posterior distributions with credible intervals
 - [ ] FastAPI REST endpoints
 - [ ] PyPI packaging
