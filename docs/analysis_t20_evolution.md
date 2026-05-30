@@ -153,9 +153,42 @@ Era-adjusted per-season WAR for canonical IPL batters (peak season highlighted).
 >
 > The 2024-2025 batting explosion was **not absorbed equally across bowler types**. Off-spin and pace got destroyed. Left-arm orthodox and wrist-spin held up — by a meaningful margin. The age of generic finger-spin in T20 is over; the era of specialized wrist-spin and disciplined left-arm has arrived.
 
-### Bowler career arcs — the canonical pace transition
+### Bowler career arcs — Malinga vs Bumrah, IPL
 
-(Coming — `t20x ratings show <name>` already produces per-phase WAR; need to wire the same per-season utility for bowlers — currently `era_relative.py` produces this but the smoke script doesn't exercise the bowler side. Trivial follow-up.)
+Per-season era-adjusted WAR for the two canonical IPL death pace specialists. Use `t20x ratings arc <name> --role bowler --league IPL`.
+
+**SL Malinga** — total **+10.07 WAR** over **9 seasons (2009–2019), 2,922 balls**
+
+| Season | WAR | WPA/ball | Balls |
+|-------:|----:|---------:|------:|
+| 2009 | +1.83 | +0.0084 | 326 |
+| 2011 | +1.84 | +0.0072 | 397 |
+| 2012 | +1.47 | +0.0068 | 351 |
+| 2014 | +1.23 | +0.0077 | 243 |
+| **2015** | **+2.64** | **+0.0104** | 378 |
+| 2017 | −0.98 | −0.0016 | 259 |
+| 2019 | +1.67 | +0.0097 | 256 |
+
+**JJ Bumrah** — total **+10.60 WAR** over **13 seasons (2013–2026), 3,420 balls**
+
+| Season | WAR | WPA/ball | Balls |
+|-------:|----:|---------:|------:|
+| 2014 | +1.02 | +0.0068 | 246 |
+| 2016 (breakout) | +1.93 | +0.0084 | 322 |
+| **2018** | **+2.38** | **+0.0097** | 333 |
+| 2019 | +1.34 | +0.0070 | 354 |
+| 2021 | +1.48 | +0.0068 | 347 |
+| 2024 (return) | +0.87 | +0.0044 | 328 |
+| 2025 | −0.56 | −0.0006 | 289 |
+
+**Key insight:** their career totals are statistically tied (+10.07 vs +10.60). But the *shapes* tell different stories:
+
+- **Malinga**: 9-season window, ~325 balls/season average; peak intensity higher (+0.0104 WPA/ball in 2015 vs Bumrah's career-best +0.0097 in 2018).
+- **Bumrah**: 13-season window, ~263 balls/season average; more consistent floor (+1.0 to +2.4 WAR most years).
+
+> ### Blog insight: the pace torch
+>
+> Malinga's career and Bumrah's career are **equivalent in total value** — but Malinga was the *peakier* version. Bumrah is the *more sustained* version of the same archetype. The torch passed cleanly. Watch Bumrah's 2025 dip: if it persists, the canonical "death pace evolution" story closes with a question mark on the next-gen.
 
 ### Spin sub-arc snapshot (to be deepened)
 

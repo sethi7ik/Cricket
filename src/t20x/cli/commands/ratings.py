@@ -12,6 +12,13 @@ from rich.table import Table
 
 from t20x.constants import LEAGUES
 from t20x.db.engine import database
+from t20x.ratings.era_relative import (
+    add_year_column,
+    career_arc,
+    career_total_era_adjusted,
+    compute_per_season_war,
+    per_season_player_wpa,
+)
 from t20x.ratings.win_probability import (
     aggregate_player_wpa_by_phase,
     compute_war,
@@ -189,3 +196,71 @@ def show(
 
         render("BATTING", bat_all, bat_phase)
         render("BOWLING", bowl_all, bowl_phase)
+
+
+@app.command()
+def arc(
+    name: str = typer.Argument(..., help="Player display name (e.g. 'CH Gayle')."),
+    league: Optional[str] = typer.Option(None, "--league", "-l"),
+    role: str = typer.Option("auto", "--role", help="batter | bowler | auto (both)"),
+    min_balls: int = typer.Option(120, "--min-balls", help="Min balls per season to compute season replacement."),
+    db_path: Optional[str] = typer.Option(None, "--db", help="Path to DuckDB file."),
+) -> None:
+    """Show a player's per-season WAR trajectory (era-relative).
+
+    Each season uses its own replacement-level baseline so 2009 numbers are
+    comparable to 2025 numbers.
+    """
+    league_resolved = _resolve_league(league)
+    db = Path(db_path) if db_path else None
+
+    with database(path=db, read_only=True) as conn:
+        with console.status("Computing per-season Δ_WP..."):
+            df = compute_wpa(conn, league=league_resolved)
+            dates = conn.execute(
+                "SELECT match_id, date FROM matches WHERE winner IS NOT NULL AND winner != ''"
+            ).fetchdf()
+            df = df.merge(dates, on="match_id", how="left")
+            df = add_year_column(df)
+            bat, bowl = per_season_player_wpa(df)
+            bat, bowl = compute_per_season_war(bat, bowl, min_balls_season=min_balls)
+
+        name_to_id, id_to_name = _build_name_resolver(conn, df)
+        pid = name_to_id.get(name)
+        if pid is None:
+            console.print(f"[red]No player named {name!r} found.[/]")
+            raise typer.Exit(1)
+
+        scope = league_resolved or "all T20"
+        console.print(f"\n[bold]{name}[/] — per-season WAR trajectory ({scope})\n")
+
+        def render(label: str, df_p: pd.DataFrame) -> None:
+            arc_df = career_arc(df_p, pid)
+            if arc_df.empty:
+                return
+            tot = career_total_era_adjusted(df_p, pid)
+            t = Table(title=f"{label}", show_header=True, header_style="bold")
+            t.add_column("Season", justify="right", style="cyan")
+            t.add_column("WAR", justify="right", style="green")
+            t.add_column("WPA", justify="right")
+            t.add_column("WPA/ball", justify="right")
+            t.add_column("Balls", justify="right")
+            for _, r in arc_df.iterrows():
+                t.add_row(
+                    str(int(r["year"])),
+                    f"{r['war']:+.2f}",
+                    f"{r['wpa']:+.2f}",
+                    f"{r['wpa_per_ball']:+.5f}",
+                    f"{int(r['balls']):,}",
+                )
+            console.print(t)
+            console.print(
+                f"  [dim]era-adj career WAR {tot['war_total']:+.2f}   "
+                f"peak {tot['peak_season']} ({tot['peak_war']:+.2f})   "
+                f"{tot['seasons']} seasons, {tot['balls_total']:,} balls[/]\n"
+            )
+
+        if role in ("auto", "batter"):
+            render("BATTING", bat)
+        if role in ("auto", "bowler"):
+            render("BOWLING", bowl)
